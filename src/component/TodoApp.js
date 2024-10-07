@@ -1,14 +1,19 @@
-import React, { Component } from 'react'
+import React, { Component } from 'react';
 import "./TodoApp.css";
+import Swal from 'sweetalert2';
+
+
 
 export default class TodoApp extends Component {
     state = {
         input: "",
-        items: []
+        items: [],
+        editInput: "",
+        editIndex: null,
+        showModal: false // to track modal visibility
     };
 
-    // using lifecycle method to retrieve the data from the local storage while mounting
-    componentDidMount(){
+    componentDidMount() {
         const storedItems = localStorage.getItem('items');
         if (storedItems) {
             this.setState({
@@ -16,10 +21,10 @@ export default class TodoApp extends Component {
             });
         }
     }
-    // updating  the localStorage whenver the items state change
-    componentDidUpdate(prevProps,prevState){
-        if (prevState.items !== this.state.items){
-            localStorage.setItem('items',JSON.stringify(this.state.items));
+
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.items !== this.state.items) {
+            localStorage.setItem('items', JSON.stringify(this.state.items));
         }
     }
 
@@ -28,67 +33,143 @@ export default class TodoApp extends Component {
             input: event.target.value
         });
     };
+
+    handleEditChange = event => {
+        this.setState({
+            editInput: event.target.value
+        });
+    };
+
     storeItems = event => {
         event.preventDefault();
-        const { input } = this.state;
+        const { input, items } = this.state;
 
-        if (input.trim()){
-            this.setState({
-                items: [...this.state.items, input],  //using spread operator to add input to items as a copy
-                input: ""
-            });
+        if (input.trim()) {
+            if (items.includes(input.trim())) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Oops...",
+                    text: "Item is Already in the List!",
+                    
+                  });
+            } else {
+                this.setState({
+                    items: [input, ...items],
+                    input: ""
+                });
+            }
         }
-
-        
- 
     };
 
-    deleteItem = key =>{
+    saveEditedItem = event => {
+        event.preventDefault();
+        const { editInput, editIndex, items } = this.state;
 
-        //const allItems = this.state.items;
+        if (editInput.trim()) {
+            // Check if the edited input is already in the list and not the current editing item
+            if (items.includes(editInput) && items[editIndex] !== editInput) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Oops...",
+                    text: "Item is Already in the List!",
+                    
+                  });
+            } else {
+                const updatedItems = items.map((item, index) =>
+                    index === editIndex ? editInput : item
+                );
+                this.setState({
+                    items: updatedItems,
+                    editInput: "",
+                    editIndex: null,
+                    showModal: false // close modal after saving
+                });
+            }
+        }
+    };
 
-        // allItems.splice(key, 1)
-
-        // this.setState({
-        //     items: allItems
-        // });          // this is a normal way of deleting now using highorder function
+    deleteItem = key => {
         this.setState({
-            items: this.state.items.filter((data,index) => index !== key)
-        });         // using higherorder function to delete data
-
+            items: this.state.items.filter((data, index) => index !== key)
+        });
     };
 
-  render() {
-    const { input,items } = this.state;
-    // console.log(items);
+    editItem = index => {
+        this.setState({
+            editInput: this.state.items[index],
+            editIndex: index,
+            showModal: true // show modal on edit click
+        });
+    };
 
+    closeModal = () => {
+        this.setState({
+            showModal: false,
+            editInput: "",
+            editIndex: null
+        });
+    };
 
-    return (
-      <div className='todo-container'>
-         <div>
-            <h1>TodoApp</h1>
-        </div>
-        
-        <form className='input-section' onSubmit={this.storeItems}>
-          
-            <input type='text'
-            value={input}
-            onChange={this.handleChange}></input>
-            <button className='add-bttn'> Add</button>
-    
-        </form>
-        <ul className='item-list'>
+    render() {
+        const { input, items, editInput, showModal } = this.state;
 
-            {items.map((data,index) =>(
-                <li key = {index} > 
-                    {data} 
-                    <i className="fa-solid fa-trash-can" onClick={() => this.deleteItem(index)}></i>
-                </li>                       //we pass the function as a call back function or it will be in a infinite loop
-            ))}
-        
-        </ul>
-        
-      </div>
-    )
-  }
+        return (
+            <div className="todo-container">
+                <div>
+                    <h1>TodoApp</h1>
+                </div>
+
+                <form className="input-section" onSubmit={this.storeItems}>
+                    <input
+                        type="text"
+                        placeholder="Add new item"
+                        value={input}
+                        onChange={this.handleChange}
+                    />
+                    <button className="add-bttn">Add</button>
+                </form>
+
+                <ul className="item-list">
+                    {items.map((item, index) => (
+                        <li key={index}>
+                            {index + 1}. {item}
+                            <div>
+                                <i
+                                    className="fa-solid fa-edit"
+                                    onClick={() => this.editItem(index)}
+                                    title="Edit"
+                                ></i>
+                                <i
+                                    className="fa-solid fa-trash-can"
+                                    onClick={() => this.deleteItem(index)}
+                                    title="Delete"
+                                ></i>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+
+                {/* Modal for Editing */}
+                {showModal && (
+                    <div className="modal">
+                        <div className="modal-content">
+                            <h2>Edit Item</h2>
+                            <form onSubmit={this.saveEditedItem}>
+                                <input
+                                    type="text"
+                                    value={editInput}
+                                    onChange={this.handleEditChange}
+                                    placeholder="Edit item"
+                                />
+                                <div className="modal-buttons">
+                                    <button type="submit" className="save-bttn">Save</button>
+                                    <button type="button" className="cancel-bttn" onClick={this.closeModal}>Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 }
