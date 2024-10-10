@@ -2,12 +2,10 @@ import React, { Component } from 'react';
 import "./TodoApp.css";
 import Swal from 'sweetalert2';
 
-
-
 export default class TodoApp extends Component {
     state = {
         input: "",
-        items: [],
+        items: [], // Items will be objects with text and completed status
         editInput: "",
         editIndex: null,
         showModal: false // to track modal visibility
@@ -45,16 +43,16 @@ export default class TodoApp extends Component {
         const { input, items } = this.state;
 
         if (input.trim()) {
-            if (items.includes(input.trim())) {
+            if (items.some(item => item.text === input.trim())) {
                 Swal.fire({
                     icon: "warning",
                     title: "Oops...",
                     text: "Item is Already in the List!",
-                    
-                  });
+                });
             } else {
+                const newItem = { text: input, completed: false }; // Add completed status
                 this.setState({
-                    items: [input, ...items],
+                    items: [newItem, ...items],
                     input: ""
                 });
             }
@@ -66,23 +64,21 @@ export default class TodoApp extends Component {
         const { editInput, editIndex, items } = this.state;
 
         if (editInput.trim()) {
-            // Check if the edited input is already in the list and not the current editing item
-            if (items.includes(editInput) && items[editIndex] !== editInput) {
+            if (items.some((item, index) => item.text === editInput && index !== editIndex)) {
                 Swal.fire({
                     icon: "warning",
                     title: "Oops...",
                     text: "Item is Already in the List!",
-                    
-                  });
+                });
             } else {
                 const updatedItems = items.map((item, index) =>
-                    index === editIndex ? editInput : item
+                    index === editIndex ? { ...item, text: editInput } : item
                 );
                 this.setState({
                     items: updatedItems,
                     editInput: "",
                     editIndex: null,
-                    showModal: false // close modal after saving
+                    showModal: false
                 });
             }
         }
@@ -90,15 +86,15 @@ export default class TodoApp extends Component {
 
     deleteItem = key => {
         this.setState({
-            items: this.state.items.filter((data, index) => index !== key)
+            items: this.state.items.filter((_, index) => index !== key)
         });
     };
 
     editItem = index => {
         this.setState({
-            editInput: this.state.items[index],
+            editInput: this.state.items[index].text,
             editIndex: index,
-            showModal: true // show modal on edit click
+            showModal: true
         });
     };
 
@@ -108,6 +104,13 @@ export default class TodoApp extends Component {
             editInput: "",
             editIndex: null
         });
+    };
+
+    toggleComplete = index => {
+        const updatedItems = this.state.items.map((item, idx) =>
+            idx === index ? { ...item, completed: !item.completed } : item
+        );
+        this.setState({ items: updatedItems });
     };
 
     render() {
@@ -131,8 +134,10 @@ export default class TodoApp extends Component {
 
                 <ul className="item-list">
                     {items.map((item, index) => (
-                        <li key={index}>
-                            {index + 1}. {item}
+                        <li key={index} className={item.completed ? "completed" : ""}>
+                            <span onClick={() => this.toggleComplete(index)}>
+                                {item.completed ? "✔️" : "◻️"} {index + 1}.
+                            </span>  {item.text}
                             <div>
                                 <i
                                     className="fa-solid fa-edit"
@@ -149,7 +154,6 @@ export default class TodoApp extends Component {
                     ))}
                 </ul>
 
-                {/* Modal for Editing */}
                 {showModal && (
                     <div className="modal">
                         <div className="modal-content">
