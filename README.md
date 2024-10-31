@@ -11,10 +11,5 @@ A simple and user-friendly Todo application built with React, designed to help u
 - **Error Alert**: Alerts if an item is already in the list.
 - **Responsive Design**: Works well on both desktop and mobile screens.
 
-## Installation
+## Thank You
 
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/yourusername/react-todo-app.git
-   cd react-todo-app
